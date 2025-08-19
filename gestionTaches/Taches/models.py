@@ -11,6 +11,7 @@ class User(AbstractUser):
         ('membre', 'Membre d’équipe'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='pending')
+    is_validated = models.BooleanField(default=False)
 
     def is_chef_equipe(self):
         return self.role == 'chef_equipe'
@@ -22,7 +23,6 @@ class User(AbstractUser):
 # Équipe
 class Team(models.Model):
     nom = models.CharField(max_length=255)
-    chef_equipe = models.OneToOneField("User", on_delete=models.SET_NULL, null=True, related_name="equipe_dirigee")
     members = models.ManyToManyField("User", through="TeamMembers", related_name="equipes")
 
     def __str__(self):
@@ -63,12 +63,19 @@ class Tache(models.Model):
 
 # Membre d’équipe
 class TeamMembers(models.Model):
+    ROLE_CHOICES = [
+        ("chef", "Chef d’équipe"),
+        ("membre", "Membre d’équipe"),
+    ]
+
     team = models.ForeignKey("Team", on_delete=models.CASCADE)
     user = models.ForeignKey("User", on_delete=models.CASCADE)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="membre")
     date_ajout = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user} dans {self.team}"
+        return f"{self.user} - {self.role} dans {self.team}"
+
 
 
 # Commentaire
