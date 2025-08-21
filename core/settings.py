@@ -46,6 +46,8 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = { 
     'DEFAULT_SCHEMA_CLASS' : 'drf_spectacular.openapi.AutoSchema' , 
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 100
 } 
 
 SPECTACULAR_SETTINGS = { 
@@ -90,7 +92,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
      'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'gestionT',  # le nom de ta base PostgreSQL
+        'NAME': 'gestiontask',  # le nom de ta base PostgreSQL
         'USER': 'postgres',           # ton utilisateur PostgreSQL
         'PASSWORD': 'holva9990',   # ton mot de passe PostgreSQL
         'HOST': 'localhost',          # ou l’IP si distant
