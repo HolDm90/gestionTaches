@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_yasg' ,
     'drf_spectacular' ,
+    'rest_framework_simplejwt.token_blacklist',
 
     'taches',
 ]
@@ -47,7 +48,10 @@ INSTALLED_APPS = [
 REST_FRAMEWORK = { 
     'DEFAULT_SCHEMA_CLASS' : 'drf_spectacular.openapi.AutoSchema' , 
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 100
+    'PAGE_SIZE': 100,
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
 } 
 
 SPECTACULAR_SETTINGS = { 
@@ -120,6 +124,11 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTH_USER_MODEL = 'taches.User'
+
+SIMPLE_JWT = {
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 
 
 
