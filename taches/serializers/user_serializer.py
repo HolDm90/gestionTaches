@@ -1,20 +1,15 @@
 # taches/serializers/user_serializer.py
 from rest_framework import serializers
 from taches.models.user_model import User
+from drf_spectacular.utils import extend_schema_field
 
 class UserSerializer(serializers.ModelSerializer):
+    groups = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'role', 'is_validated']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ["id", "email", "first_name", "last_name", "is_active", "groups"]
 
-    def create(self, validated_data):
-        user = User(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            role=validated_data.get('role', None),
-            is_validated=validated_data.get('is_validated', False)
-        )
-        user.set_password(validated_data['password'])
-        user.save()
-        return user
+    @extend_schema_field(serializers.ListSerializer(child=serializers.CharField()))
+    def get_groups(self, obj) -> list[str]:  # type hint ajouté
+        return [group.name for group in obj.groups.all()]

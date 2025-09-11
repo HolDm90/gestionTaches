@@ -1,22 +1,45 @@
-from django.contrib.auth.models import AbstractUser
+# taches/models/user_model.py
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager, Group
 from django.utils import timezone
-from django.conf import settings
 from django.db import models
 
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("L'adresse email doit être fournie")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
 
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(email, password, **extra_fields)
 
-# Utilisateur personnalisé
-class User(AbstractUser):
-    ROLE_CHOICES = [
-        ('pending', 'En attente'),
-        ('chef_equipe', 'Chef d’équipe'),
-        ('membre', 'Membre d’équipe'),
-    ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='pending')
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(unique=True)
+    first_name = models.CharField(max_length=30, blank=True)
+    last_name = models.CharField(max_length=30, blank=True)
     is_validated = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(default=timezone.now)
 
-    def is_chef_equipe(self):
-        return self.role == 'chef_equipe'
+    objects = CustomUserManager()
 
-    def is_membre(self):
-        return self.role == 'membre'
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    def __str__(self):
+        return self.email
+
+    # ----------------------------
+    # Helper pour vérifier les groupes
+    # ----------------------------
+    def has_group(self, group_name: str) -> bool:
+        """
+        Retourne True si l'utilisateur appartient au groupe donné.
+        """
+        return self.groups.filter(name=group_name).exists()
