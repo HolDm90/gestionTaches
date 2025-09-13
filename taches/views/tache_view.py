@@ -1,3 +1,4 @@
+# taches/views/tache_view.py
 from rest_framework import viewsets, status, serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -26,7 +27,6 @@ class TacheViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         user = self.request.user
 
-        # ⚠️ Toujours vérifier que l'utilisateur est authentifié
         if not user.is_authenticated:
             return [IsAuthenticated()]
 
@@ -36,7 +36,7 @@ class TacheViewSet(viewsets.ModelViewSet):
             elif hasattr(user, "has_group") and user.has_group("Membre"):
                 return [IsAuthenticated(), IsMembre()]
             else:
-                # Admin → lecture seule
+                # Admin → lecture seule uniquement
                 return [IsAuthenticated()]
         
         # Lecture pour tous les utilisateurs validés
@@ -48,12 +48,12 @@ class TacheViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return Tache.objects.none()
 
-        if hasattr(user, "has_group") and user.has_group("Chef d’équipe"):
-            return Tache.objects.filter(equipe__teammembers__user=user).distinct()
-        elif hasattr(user, "has_group") and user.has_group("Membre"):
-            return Tache.objects.filter(equipe__teammembers__user=user).distinct()
-        elif user.is_superuser:
+        if user.is_superuser:
             return Tache.objects.all()
+
+        if hasattr(user, "has_group") and (user.has_group("Chef d’équipe") or user.has_group("Membre")):
+            return Tache.objects.filter(equipe__teammembers__user=user).distinct()
+
         return Tache.objects.none()
 
     def perform_create(self, serializer):
@@ -115,6 +115,7 @@ class TacheViewSet(viewsets.ModelViewSet):
         tache = self.get_object()
         user = request.user
 
+        # Vérifie que le chef ou le membre fait partie de l'équipe
         if hasattr(user, "has_group") and (user.has_group("Chef d’équipe") or user.has_group("Membre")):
             if not TeamMembers.objects.filter(team=tache.equipe, user=user).exists():
                 return Response({"detail": "Non autorisé."}, status=403)

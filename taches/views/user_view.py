@@ -11,6 +11,7 @@ from django.contrib.auth.models import Group
 from taches.models.user_model import User
 from taches.serializers.user_serializer import UserSerializer
 from taches.serializers.login_serializer import CustomTokenObtainPairSerializer
+from taches.serializers.user_serializer import UserSerializer, RegisterSerializer
 from taches.permissions import IsValidatedUser, IsMembre, IsChefEquipe
 
 
@@ -51,7 +52,7 @@ class RegisterView(APIView):
         description="Créer un nouvel utilisateur (is_validated=False par défaut, groupe Pending)"
     )
     def post(self, request):
-        serializer = UserSerializer(data=request.data)
+        serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save(is_validated=False)
 

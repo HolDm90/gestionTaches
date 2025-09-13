@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.core.mail import send_mail
+from django.contrib.auth.models import Group
+
 
 from .models import User, Team, TeamMembers, Statut, Priorite, Tache, Commentaire
 
@@ -40,24 +42,56 @@ class UserAdmin(BaseUserAdmin):
         return ", ".join([g.name for g in obj.groups.all()])
     get_groups.short_description = 'Groups'
 
-    actions = ['validate_users']
+    # ✅ Actions personnalisées
+    actions = ['validate_as_chef', 'validate_as_membre']
 
-    def validate_users(self, request, queryset):
-        """
-        Action admin pour valider des utilisateurs et envoyer un email
-        """
+    def validate_as_chef(self, request, queryset):
+        chef_group, _ = Group.objects.get_or_create(name="Chef d’équipe")
+        pending_group, _ = Group.objects.get_or_create(name="Pending")
+
         for user in queryset:
-            if not user.is_validated:
+            if not user.is_superuser:
                 user.is_validated = True
                 user.save()
-                # Envoyer email
-                subject = "Votre compte a été validé"
-                message = f"Bonjour {user.first_name},\n\nVotre compte a été validé.\nVous pouvez maintenant vous connecter avec votre email et mot de passe.\n\nEmail: {user.email}\n"
+                user.groups.remove(pending_group)
+                user.groups.add(chef_group)
+
+                # Envoi d’email
+                subject = "Votre compte a été validé comme Chef d’équipe"
+                message = (
+                    f"Bonjour {user.first_name},\n\n"
+                    f"Votre compte a été validé et vous êtes désormais Chef d’équipe.\n"
+                    f"Vous pouvez vous connecter avec votre email : {user.email}\n"
+                )
                 send_mail(subject, message, None, [user.email], fail_silently=False)
-        self.message_user(request, "Les utilisateurs sélectionnés ont été validés et ont reçu un email.")
 
-    validate_users.short_description = "Valider les utilisateurs sélectionnés et envoyer un email"
+        self.message_user(request, "Les utilisateurs sélectionnés ont été validés comme Chef d’équipe.")
 
+    validate_as_chef.short_description = "Valider comme Chef d’équipe"
+
+    def validate_as_membre(self, request, queryset):
+        membre_group, _ = Group.objects.get_or_create(name="Membre d’équipe")
+        pending_group, _ = Group.objects.get_or_create(name="Pending")
+
+        for user in queryset:
+            if not user.is_superuser:
+                user.is_validated = True
+                user.save()
+                user.groups.remove(pending_group)
+                user.groups.add(membre_group)
+
+                # Envoi d’email
+                subject = "Votre compte a été validé comme Membre d’équipe"
+                message = (
+                    f"Bonjour {user.first_name},\n\n"
+                    f"Votre compte a été validé et vous êtes désormais Membre d’équipe.\n"
+                    f"Vous pouvez vous connecter avec votre email : {user.email}\n"
+                )
+                send_mail(subject, message, None, [user.email], fail_silently=False)
+
+        self.message_user(request, "Les utilisateurs sélectionnés ont été validés comme Membre d’équipe.")
+
+    validate_as_membre.short_description = "Valider comme Membre d’équipe"
 
 # ----------------------
 # TeamMembersAdmin

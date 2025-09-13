@@ -1,3 +1,4 @@
+# taches/views/commentaire_view.py
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiExample
@@ -6,6 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from taches.models.commentaire_model import Commentaire
 from taches.serializers.commentaire_serializer import CommentaireSerializer
 
+
 @extend_schema(tags=["Commentaires"])
 class CommentaireViewSet(viewsets.ModelViewSet):
     queryset = Commentaire.objects.all()
@@ -13,6 +15,12 @@ class CommentaireViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        """
+        Filtre les commentaires selon :
+        - content_type & object_id : pour cibler un objet spécifique
+        - parent : pour récupérer les réponses ou uniquement les commentaires racine
+        - include_deleted : inclure les commentaires supprimés si demandé
+        """
         queryset = super().get_queryset()
         params = self.request.query_params
 
@@ -39,12 +47,19 @@ class CommentaireViewSet(viewsets.ModelViewSet):
         return queryset.order_by("date_creation")
 
     @extend_schema(
+        description="Créer un commentaire sur une tâche ou un autre objet",
         request=CommentaireSerializer,
         responses={201: CommentaireSerializer},
         examples=[
             OpenApiExample(
                 "Créer un commentaire",
-                value={"contenu": "Super tâche !", "cible_type": "tache", "cible_id": 7, "parent": None}
+                value={
+                    "contenu": "Super tâche !",
+                    "cible_type": "tache",
+                    "cible_id": 7,
+                    "parent": None
+                },
+                request_only=True,
             )
         ],
     )
@@ -55,12 +70,18 @@ class CommentaireViewSet(viewsets.ModelViewSet):
         parent_id = data.get("parent")
 
         if not cible_type or not cible_id:
-            return Response({"detail": "cible_type et cible_id obligatoires"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "cible_type et cible_id obligatoires"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             ct = ContentType.objects.get(model=cible_type.lower())
         except ContentType.DoesNotExist:
-            return Response({"detail": f"ContentType '{cible_type}' non trouvé"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": f"ContentType '{cible_type}' non trouvé"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         commentaire = Commentaire.objects.create(
             auteur=request.user,
